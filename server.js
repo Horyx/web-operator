@@ -1,7 +1,6 @@
 const express = require("express");
 const http = require("http");
 const { chromium } = require("playwright");
-const robot = require("robotjs")
 
 const app = express();
 const server = http.createServer(app);
@@ -50,7 +49,8 @@ app.post("/start", async (req, res) => {
     const browser = await chromium.launch({
       headless: false,
       args: [
-        '--start-maximized'
+        '--start-maximized',
+        '--auto-select-tab-capture-source-by-title=SharedPage'
       ]
     });
     const context = await browser.newContext({
@@ -59,23 +59,17 @@ app.post("/start", async (req, res) => {
 
     const startPage = await context.newPage();
     await startPage.goto(startUrl, { timeout: 60000 });
+    await startPage.evaluate(() => {
+      document.title = 'SharedPage'
+    })
 
     const broadcasterPage = await context.newPage();
     const broadcasterURL = `http://127.0.0.1:${port}/broadcaster.html`;
-    await broadcasterPage.goto(broadcasterURL, { timeout: 60000 });    
-
-    const screenSize = robot.getScreenSize()
-    const width = screenSize.width
-    await sleep(1000)
-    robot.moveMouse(width / 2 - 220, 230)
-    robot.mouseClick("left")
-    await sleep(1000)
-    robot.moveMouse(width / 2 + 170, 630)
-    robot.mouseClick("left")
+    await broadcasterPage.goto(broadcasterURL, { timeout: 60000 });
 
     res.json({ success: true, message: "Browser launched" });
   } catch (err) {
     console.error(err)
-    res.json({ success: false, message: "Browser launch failed" });
+    res.status(500).json({ success: false, message: "Browser launch failed" });
   }
 });
