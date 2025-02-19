@@ -1,6 +1,7 @@
 const express = require("express");
 const http = require("http");
 const { chromium } = require("playwright");
+const robot = require("robotjs")
 
 const app = express();
 const server = http.createServer(app);
@@ -37,29 +38,44 @@ io.sockets.on("connection", (socket) => {
 });
 server.listen(port, () => console.log(`Server is running on port ${port}`));
 
-server.post("/start", async (req, res) => {
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+app.post("/start", async (req, res) => {
   const { startUrl, tasks } = req.body;
   console.log("Launching browser with:", startUrl, "Tasks:", tasks);
 
-  const browser = await chromium.launch({
-    headless: false,
-    args: [
-      "--no-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-software-rasterizer",
-      "--use-gl=egl",
-      "--enable-webgl",
-      "--disable-gpu-sandbox",
-    ],
-  });
-  const context = await browser.newContext();
+  try {
+    const browser = await chromium.launch({
+      headless: false,
+      args: [
+        '--start-maximized'
+      ]
+    });
+    const context = await browser.newContext({
+      viewport: null
+    });
 
-  const startPage = await context.newPage();
-  await startPage.goto(startUrl, { timeout: 60000 });
+    const startPage = await context.newPage();
+    await startPage.goto(startUrl, { timeout: 60000 });
 
-  const broadcasterPage = await context.newPage();
-  const broadcasterURL = `http://127.0.0.1:${port}/broadcaster.html`;
-  await broadcasterPage.goto(broadcasterURL, { timeout: 60000 });
+    const broadcasterPage = await context.newPage();
+    const broadcasterURL = `http://127.0.0.1:${port}/broadcaster.html`;
+    await broadcasterPage.goto(broadcasterURL, { timeout: 60000 });    
 
-  res.json({ success: true, message: "Browser launched" });
+    const screenSize = robot.getScreenSize()
+    const width = screenSize.width
+    await sleep(1000)
+    robot.moveMouse(width / 2 - 220, 230)
+    robot.mouseClick("left")
+    await sleep(1000)
+    robot.moveMouse(width / 2 + 170, 630)
+    robot.mouseClick("left")
+
+    res.json({ success: true, message: "Browser launched" });
+  } catch (err) {
+    console.error(err)
+    res.json({ success: false, message: "Browser launch failed" });
+  }
 });

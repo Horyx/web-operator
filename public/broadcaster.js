@@ -47,7 +47,6 @@ window.onbeforeunload = () => {
   socket.close();
 };
 
-// Get camera and microphone
 const videoElement = document.querySelector("video");
 
 getStream()

@@ -29,7 +29,6 @@ socket.on("offer", (id, description) => {
   };
 });
 
-
 socket.on("candidate", (id, candidate) => {
   peerConnection
     .addIceCandidate(new RTCIceCandidate(candidate))
@@ -48,3 +47,22 @@ window.onbeforeunload = () => {
   socket.close();
   peerConnection.close();
 };
+
+document.getElementById('startForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const startUrl = formData.get('startUrl');
+  const tasks = formData.get('tasks');
+
+  try {
+    const response = await fetch('/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startUrl, tasks })
+    });
+    const result = await response.json();
+    console.log(result.message)
+  } catch (err) {
+    console.error('Failed to start:', err);
+  }
+});
