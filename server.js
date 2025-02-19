@@ -37,10 +37,6 @@ io.sockets.on("connection", (socket) => {
 });
 server.listen(port, () => console.log(`Server is running on port ${port}`));
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 app.post("/start", async (req, res) => {
   const { startUrl, tasks } = req.body;
   console.log("Launching browser with:", startUrl, "Tasks:", tasks);
