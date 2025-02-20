@@ -1,36 +1,38 @@
 const peerConnections = {};
 const config = {
   iceServers: [
-    { 
-      "urls": "stun:stun.l.google.com:19302",
+    {
+      urls: "stun:stun.l.google.com:19302",
     },
-  ]
+  ],
 };
 
 const socket = io.connect(window.location.origin);
+const params = new URLSearchParams(window.location.search);
+const watcher = params.get("watcher");
 
 socket.on("answer", (id, description) => {
   peerConnections[id].setRemoteDescription(description);
 });
 
-socket.on("watcher", id => {
+socket.on("watcher", () => {
   const peerConnection = new RTCPeerConnection(config);
-  peerConnections[id] = peerConnection;
+  peerConnections[watcher] = peerConnection;
 
   let stream = videoElement.srcObject;
-  stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+  stream.getTracks().forEach((track) => peerConnection.addTrack(track, stream));
 
-  peerConnection.onicecandidate = event => {
+  peerConnection.onicecandidate = (event) => {
     if (event.candidate) {
-      socket.emit("candidate", id, event.candidate);
+      socket.emit("candidate", watcher, event.candidate);
     }
   };
 
   peerConnection
     .createOffer()
-    .then(sdp => peerConnection.setLocalDescription(sdp))
+    .then((sdp) => peerConnection.setLocalDescription(sdp))
     .then(() => {
-      socket.emit("offer", id, peerConnection.localDescription);
+      socket.emit("offer", watcher, peerConnection.localDescription);
     });
 });
 
@@ -38,7 +40,7 @@ socket.on("candidate", (id, candidate) => {
   peerConnections[id].addIceCandidate(new RTCIceCandidate(candidate));
 });
 
-socket.on("disconnectPeer", id => {
+socket.on("disconnectPeer", (id) => {
   peerConnections[id].close();
   delete peerConnections[id];
 });
@@ -49,11 +51,11 @@ window.onbeforeunload = () => {
 
 const videoElement = document.querySelector("video");
 
-getStream()
+getStream();
 
 function getStream() {
   if (window.stream) {
-    window.stream.getTracks().forEach(track => {
+    window.stream.getTracks().forEach((track) => {
       track.stop();
     });
   }
@@ -70,7 +72,7 @@ function getStream() {
 function gotStream(stream) {
   window.stream = stream;
   videoElement.srcObject = stream;
-  socket.emit("broadcaster");
+  socket.emit("broadcaster", watcher);
 }
 
 function handleError(error) {
